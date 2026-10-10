@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>Medrec 系统架构</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: transparent; }
+  body {
+    font-family: "Microsoft YaHei UI", "Microsoft YaHei", "Segoe UI", "PingFang SC", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    padding: 16px;
+    display: inline-block;
+  }
+
+  /* 画布总宽 1080 + body 内边距 32 = 1112 < 视口 1200，确保右边框不被裁掉 */
+  .canvas {
+    width: 1080px;
+    background: #ffffff;
+    border: 1px solid #d8dee4;
+    border-radius: 18px;
+    box-shadow: 0 8px 28px rgba(15, 23, 42, 0.10);
+    padding: 32px 34px 34px;
+  }
+
+  /* ---------- 头部 ---------- */
+  .head {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    padding-bottom: 16px; border-bottom: 1px solid #eaeef2;
+  }
+  .head .title { font-size: 27px; font-weight: 700; color: #1f2328; letter-spacing: .3px; }
+  .head .title em { font-style: normal; color: #6DB33F; }
+  .head .sub { font-size: 14px; color: #6e7781; padding-bottom: 4px; }
+
+  .layer { margin-top: 20px; }
+  .layer-label {
+    font-size: 12.5px; font-weight: 700; letter-spacing: 1.4px;
+    color: #8c959f; margin-bottom: 8px;
+  }
+
+  .card {
+    background: #ffffff; border: 1px solid #d8dee4; border-radius: 12px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+  }
+  .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+  .name { font-size: 16px; font-weight: 700; color: #1f2328; }
+  .tag  { font-size: 13px; color: #6e7781; }
+
+  /* ---------- 客户端 ---------- */
+  .client {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 15px 20px; border-left: 4px solid #42b883;
+  }
+  .client .left { display: flex; align-items: center; gap: 10px; }
+
+  /* ---------- 应用层 ---------- */
+  .backend { padding: 16px 20px 18px; border-left: 4px solid #6DB33F; }
+  .backend .bhead {
+    display: flex; align-items: center; justify-content: space-between;
+    padding-bottom: 12px; border-bottom: 1px dashed #e4e9ee; margin-bottom: 14px;
+  }
+  .backend .bhead .left { display: flex; align-items: center; gap: 10px; }
+  .badge {
+    font-size: 12px; font-weight: 700; color: #1a7f37;
+    background: #dafbe1; border: 1px solid #aceebb; border-radius: 999px;
+    padding: 3px 10px;
+  }
+
+  .flow { display: flex; align-items: center; gap: 7px; }
+  .flow + .flow { margin-top: 13px; }
+  .flow-label { flex: none; width: 88px; font-size: 13px; font-weight: 700; color: #57606a; }
+  .chip {
+    font-size: 13px; color: #24292f; background: #f6f8fa;
+    border: 1px solid #d8dee4; border-radius: 8px; padding: 6px 12px;
+    white-space: nowrap;
+  }
+  .chev { color: #b1bac4; font-size: 14px; flex: none; }
+
+  /* ---------- 箭头 ---------- */
+  .arrow { position: relative; height: 46px; display: flex; align-items: center; justify-content: center; }
+  .arrow::before {
+    content: ''; position: absolute; left: 50%; top: 0; bottom: 9px; width: 2px;
+    background: #ccd4dd; transform: translateX(-1px);
+  }
+  .arrow::after {
+    content: ''; position: absolute; left: 50%; bottom: 1px;
+    border-left: 6px solid transparent; border-right: 6px solid transparent;
+    border-top: 9px solid #ccd4dd; transform: translateX(-6px);
+  }
+  .arrow-label {
+    position: relative; z-index: 2; font-size: 12.5px; color: #57606a;
+    background: #ffffff; border: 1px solid #d8dee4; border-radius: 999px;
+    padding: 4px 14px; white-space: nowrap;
+  }
+
+  /* ---------- 存储 / 外部服务 ---------- */
+  .bottom { display: flex; gap: 16px; }
+  .group {
+    background: #f6f8fa; border: 1px solid #e1e7ed;
+    border-radius: 12px; padding: 13px 15px 15px;
+  }
+  .group .glabel {
+    font-size: 12.5px; font-weight: 700; letter-spacing: 1.2px;
+    color: #8c959f; margin-bottom: 10px;
+  }
+  .group .items { display: flex; gap: 10px; }
+  .mini {
+    flex: 1; background: #ffffff; border: 1px solid #d8dee4; border-radius: 10px;
+    padding: 11px 13px; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  }
+  .mini .mhead { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; }
+  .mini .mname { font-size: 14px; font-weight: 700; color: #1f2328; white-space: nowrap; }
+  .mini .mdesc { font-size: 12px; color: #6e7781; line-height: 1.55; }
+</style>
+</head>
+<body>
+<div class="canvas">
+
+  <div class="head">
+    <div class="title">Medrec <em>系统架构</em></div>
+    <div class="sub">RAG 知识库问答平台 · PDF 检索增强与引用溯源</div>
+  </div>
+
+  <!-- 客户端 -->
+  <div class="layer">
+    <div class="layer-label">客户端</div>
+    <div class="card client">
+      <div class="left">
+        <span class="dot" style="background:#42b883"></span>
+        <span class="name">Vue 3 前端</span>
+        <span class="tag">Vite 7 · TypeScript · Element Plus · Pinia</span>
+      </div>
+      <div class="flow">
+        <span class="chip">对话窗口</span>
+        <span class="chip">智能体管理</span>
+        <span class="chip">知识库管理</span>
+        <span class="chip">PDF 原文定位</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow"><span class="arrow-label">REST + SSE 流式响应</span></div>
+
+  <!-- 应用层 -->
+  <div class="layer" style="margin-top:0">
+    <div class="layer-label">应用层</div>
+    <div class="card backend">
+      <div class="bhead">
+        <div class="left">
+          <span class="dot" style="background:#6DB33F"></span>
+          <span class="name">Spring Boot 4 + Spring AI 2</span>
+          <span class="tag">Java 21 · MyBatis-Plus · Caffeine</span>
+        </div>
+        <span class="badge">RAG 全链路</span>
+      </div>
+
+      <div class="flow">
+        <span class="flow-label">问答链路</span>
+        <span class="chip">查询扩展</span>
+        <span class="chev">→</span>
+        <span class="chip">多库并发检索</span>
+        <span class="chev">→</span>
+        <span class="chip">重排 / topK 截断</span>
+        <span class="chev">→</span>
+        <span class="chip">上下文增强</span>
+        <span class="chev">→</span>
+        <span class="chip">流式生成</span>
+      </div>
+
+      <div class="flow">
+        <span class="flow-label">入库链路</span>
+        <span class="chip">异步任务</span>
+        <span class="chev">→</span>
+        <span class="chip">文档解析</span>
+        <span class="chev">→</span>
+        <span class="chip">结构化处理</span>
+        <span class="chev">→</span>
+        <span class="chip">父子分块</span>
+        <span class="chev">→</span>
+        <span class="chip">向量化入库</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow"><span class="arrow-label">数据读写 · 解析与模型调用</span></div>
+
+  <!-- 存储 / 外部服务 -->
+  <div class="layer" style="margin-top:0">
+    <div class="bottom">
+      <div class="group" style="flex:1.62">
+        <div class="glabel">数据存储</div>
+        <div class="items">
+          <div class="mini">
+            <div class="mhead"><span class="dot" style="background:#DC244C"></span><span class="mname">Qdrant</span></div>
+            <div class="mdesc">向量库<br>每个知识库独立 collection</div>
+          </div>
+          <div class="mini">
+            <div class="mhead"><span class="dot" style="background:#00758F"></span><span class="mname">MySQL 8</span></div>
+            <div class="mdesc">业务数据<br>会话记忆持久化</div>
+          </div>
+          <div class="mini">
+            <div class="mhead"><span class="dot" style="background:#C72E49"></span><span class="mname">MinIO</span></div>
+            <div class="mdesc">对象存储<br>原始 PDF 文件</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="group" style="flex:1">
+        <div class="glabel">外部服务</div>
+        <div class="items">
+          <div class="mini">
+            <div class="mhead"><span class="dot" style="background:#6E56CF"></span><span class="mname">MinerU</span></div>
+            <div class="mdesc">PDF → 结构化内容</div>
+          </div>
+          <div class="mini">
+            <div class="mhead"><span class="dot" style="background:#FF6A00"></span><span class="mname">DashScope</span></div>
+            <div class="mdesc">对话 · VLM · Embedding</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

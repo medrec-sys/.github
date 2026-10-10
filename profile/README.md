@@ -25,15 +25,7 @@
 
 ## 架构
 
-```mermaid
-flowchart LR
-    UI["Vue 3 前端<br/>对话 · 管理 · PDF 定位"] -->|REST + SSE| API["Spring Boot 4 + Spring AI<br/>RAG 全链路"]
-    API --> VDB[("Qdrant<br/>向量库")]
-    API --> DB[("MySQL 8<br/>业务 + 会话记忆")]
-    API --> OBJ[("MinIO<br/>原始 PDF")]
-    API -->|PDF 解析| PARSE["MinerU"]
-    API -->|对话 / 向量 / 多模态| LLM["DashScope 模型服务"]
-```
+![Medrec 系统架构](https://raw.githubusercontent.com/medrec-sys/.github/master/profile/assets/architecture.png)
 
 ## 快速开始
 
